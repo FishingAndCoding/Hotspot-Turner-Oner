@@ -137,14 +137,14 @@ Implement a single-Activity Android app in Kotlin that enables the WiFi hotspot 
     - Test takes no action when name does not match and automation is active
     - _Requirements: 2.3, 2.4, 2.5_
 
-- [~] 10. BluetoothMonitorService
+- [x] 10. BluetoothMonitorService
   - [x] 10.1 Implement `BluetoothMonitorService`
     - Extend `Service`, declare `START_STICKY` return from `onStartCommand`
     - In `onStartCommand`: call `startForeground()` with `NotificationHelper.buildServiceNotification(true)`, then dynamically register `BluetoothConnectionReceiver` with an `IntentFilter` for `BluetoothDevice.ACTION_ACL_CONNECTED`
     - In `onDestroy`: unregister `BluetoothConnectionReceiver`; post `NotificationHelper.buildServiceNotification(false)` (or update the notification) to show "Stopped"
     - _Requirements: 2.1, 2.2, 5.1, 5.2, 5.3, 5.4_
 
-  - [~] 10.2 Write integration tests for service lifecycle
+  - [x] 10.2 Write integration tests for service lifecycle
     - Test foreground service persists after `Activity.finish()`
     - Test service restarts within 10 seconds after process kill (START_STICKY)
     - Test toggle on starts service within 2 seconds; toggle off stops it

@@ -45,13 +45,11 @@ class MainActivity : AppCompatActivity() {
     // -------------------------------------------------------------------------
 
     /** Injected during [onCreate]; can be overridden in tests. */
-    internal var automationPreferences: AutomationPreferences =
-        AutomationPreferencesImpl(applicationContext)
+    internal lateinit var automationPreferences: AutomationPreferences
 
-    internal var shizukuStatusChecker: ShizukuStatusChecker =
-        ShizukuStatusCheckerImpl(applicationContext)
+    internal lateinit var shizukuStatusChecker: ShizukuStatusChecker
 
-    internal var permissionHelper: PermissionHelper = PermissionHelperImpl()
+    internal lateinit var permissionHelper: PermissionHelper
 
     // -------------------------------------------------------------------------
     // Views
@@ -104,6 +102,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        automationPreferences = AutomationPreferencesImpl(applicationContext)
+        shizukuStatusChecker = ShizukuStatusCheckerImpl(applicationContext)
+        permissionHelper = PermissionHelperImpl()
 
         automationToggle = findViewById(R.id.automationToggle)
         shizukuBanner = findViewById(R.id.shizukuBanner)

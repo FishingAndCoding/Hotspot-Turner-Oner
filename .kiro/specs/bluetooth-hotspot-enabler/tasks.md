@@ -182,7 +182,7 @@ Implement a single-Activity Android app in Kotlin that enables the WiFi hotspot 
     - Handle `Requirement 4.5`: show explanation before requesting `WRITE_SETTINGS` (note: Shizuku removes this need, so display a note that WRITE_SETTINGS is not required)
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 4.1, 4.2, 4.3, 4.4_
 
-  - [~] 13.3 Write unit tests for `MainActivity`
+  - [x] 13.3 Write unit tests for `MainActivity`
     - Test toggle defaults to off on first launch (no persisted state)
     - Test inline error shown on prefs write failure
     - Test toggle on/off never calls `HotspotController` directly

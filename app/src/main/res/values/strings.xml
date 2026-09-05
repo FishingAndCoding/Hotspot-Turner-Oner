@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App name -->
+    <string name="app_name">Bluetooth Hotspot Enabler</string>
+
+    <!-- Shizuku banner messages -->
+    <string name="shizuku_not_installed_message">Shizuku is not installed. Tap to open Play Store.
+\n\nShizuku is required to enable the WiFi hotspot programmatically. After installing, open Shizuku and activate it once via Wireless Debugging (no computer required on Android 11+).</string>
+    <string name="shizuku_not_running_message">Shizuku needs to be started. Tap to open Shizuku app to activate it.
+\n\nNote: WRITE_SETTINGS permission is not required — Shizuku handles all privilege escalation.</string>
+
+    <!-- Permission denial messages -->
+    <string name="permission_permanently_denied_message">The %1$s permission was permanently denied. To restore Bluetooth monitoring functionality, go to Settings → Apps → Bluetooth Hotspot Enabler → Permissions and grant the permission manually.</string>
+
+    <!-- Inline error messages -->
+    <string name="error_prefs_write_failed">Settings could not be saved. Please try again.</string>
+    <string name="error_shizuku_not_running">Shizuku is not active. Please start Shizuku before enabling the automation.</string>
+    <string name="error_service_security">Could not start the monitoring service. Please check that all required app permissions are granted.</string>
+</resources>

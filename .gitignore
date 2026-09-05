@@ -1,0 +1,18 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local Android tooling
+local.properties
+.idea/
+*.iml
+
+# Generated APKs and test reports
+*.apk
+*.aab
+*.ap_
+captures/
+
+# Local tool installations
+.tools/

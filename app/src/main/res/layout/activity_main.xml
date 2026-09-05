@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Main activity layout for Bluetooth Hotspot Enabler.
+
+    Contains:
+    - A dismissible Shizuku status banner (MaterialCardView) at the top that
+      is shown or hidden based on Shizuku availability. Default: GONE.
+    - An AutomationToggle (SwitchMaterial) always visible in the centre.
+    - An errorText (TextView) for inline error messages. Default: GONE.
+
+    Requirements: 1.1
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    tools:context=".MainActivity">
+
+    <!--
+        Shizuku status banner.
+        Visibility is managed in code:
+          - GONE     → Shizuku is installed and active (happy path)
+          - VISIBLE  → Shizuku needs attention (not installed / not running)
+        The banner message and click action are set programmatically.
+    -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/shizukuBanner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/colorSecondaryContainer"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <!-- Status icon -->
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:contentDescription="@null"
+                android:src="@android:drawable/ic_dialog_alert"
+                app:tint="?attr/colorOnSecondaryContainer" />
+
+            <!-- Banner message text -->
+            <TextView
+                android:id="@+id/shizukuBannerText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:textColor="?attr/colorOnSecondaryContainer"
+                android:textSize="14sp"
+                tools:text="Shizuku is not installed. Tap to open Play Store." />
+
+            <!-- Dismiss button -->
+            <ImageButton
+                android:id="@+id/shizukuBannerDismiss"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center_vertical"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Dismiss"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:tint="?attr/colorOnSecondaryContainer" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!--
+        AutomationToggle — always visible.
+        Disabled programmatically when Shizuku is not active (Requirement 1.1).
+    -->
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/automationToggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enable Hotspot Automation"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toTopOf="@id/errorText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/shizukuBanner"
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:checked="false" />
+
+    <!--
+        Inline error message for SharedPreferences failures.
+        GONE by default; shown programmatically on read/write errors (Requirement 1.7).
+    -->
+    <TextView
+        android:id="@+id/errorText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="?attr/colorError"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/automationToggle"
+        tools:text="Settings could not be saved."
+        tools:visibility="visible" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -150,7 +150,7 @@ Implement a single-Activity Android app in Kotlin that enables the WiFi hotspot 
     - Test toggle on starts service within 2 seconds; toggle off stops it
     - _Requirements: 2.2, 5.3, 5.4_
 
-- [~] 11. BootReceiver
+- [x] 11. BootReceiver
   - [x] 11.1 Implement `BootReceiver`
     - In `onReceive` for `ACTION_BOOT_COMPLETED`: call `AutomationPreferences.isAutomationEnabled()`; if `true`, call `context.startForegroundService(Intent(context, BluetoothMonitorService::class.java))`
     - _Requirements: 2.6, 5.5_
@@ -160,14 +160,14 @@ Implement a single-Activity Android app in Kotlin that enables the WiFi hotspot 
     - Test does NOT start service when automation was inactive
     - _Requirements: 2.6, 5.5_
 
-  - [~] 11.3 Write integration test for boot receiver
+  - [x] 11.3 Write integration test for boot receiver
     - Send `ACTION_BOOT_COMPLETED` broadcast and assert service starts within 30 seconds
     - _Requirements: 2.6, 5.5_
 
-- [~] 12. Checkpoint — service layer complete
+- [x] 12. Checkpoint — service layer complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [~] 13. MainActivity
+- [x] 13. MainActivity
   - [x] 13.1 Implement `MainActivity` layout
     - Create `activity_main.xml` with a `SwitchMaterial` (`AutomationToggle`) and a dismissible Shizuku status `MaterialBanner` (or `TextView` banner)
     - _Requirements: 1.1_
@@ -189,17 +189,17 @@ Implement a single-Activity Android app in Kotlin that enables the WiFi hotspot 
     - Test toggle is disabled when `ShizukuStatusChecker.isRunning()` returns `false`
     - _Requirements: 1.1, 1.5, 1.6, 1.7_
 
-  - [~] 13.4 Write Espresso integration tests for `MainActivity`
+  - [x] 13.4 Write Espresso integration tests for `MainActivity`
     - Test toggle on starts `BluetoothMonitorService`; toggle off stops it
     - Test Shizuku status banner is shown when Shizuku is not active
     - _Requirements: 1.1, 1.2, 1.3, 2.2_
 
-- [ ] 14. End-to-end integration test
-  - [~] 14.1 Write end-to-end Espresso/instrumented test
+- [x] 14. End-to-end integration test
+  - [x] 14.1 Write end-to-end Espresso/instrumented test
     - With Shizuku active on the test device, send a fake `ACTION_ACL_CONNECTED` broadcast with device name `"CHEVROLET6572"` and assert that `TetheringManager.startTethering()` is invoked (via mock or observable side-effect)
     - _Requirements: 2.3, 3.1_
 
-- [~] 15. Final checkpoint — all tests pass
+- [x] 15. Final checkpoint — all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

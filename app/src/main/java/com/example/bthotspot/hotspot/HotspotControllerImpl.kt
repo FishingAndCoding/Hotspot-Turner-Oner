@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.TetheringManager
 import android.net.wifi.WifiManager
+import android.util.Log
 import com.example.bthotspot.notifications.NotificationHelper
 import com.example.bthotspot.shizuku.DefaultShizukuGateway
 import com.example.bthotspot.shizuku.ShizukuGateway
@@ -71,16 +72,23 @@ open class HotspotControllerImpl(
      * Requirements: 3.1, 3.2, 3.3, 3.4, 2.7
      */
     override fun enableHotspotIfNeeded() {
+        Log.d(TAG, "enableHotspotIfNeeded called")
+
         // Guard 1: no-op if hotspot is already on (Requirement 3.2)
-        if (isHotspotEnabled()) return
+        if (isHotspotEnabled()) {
+            Log.d(TAG, "Hotspot already enabled — no-op")
+            return
+        }
 
         // Guard 2: Shizuku process must be alive (Requirement 3.3)
         val shizukuAlive = try {
             shizukuGateway.pingBinder()
         } catch (e: Exception) {
+            Log.e(TAG, "pingBinder threw exception", e)
             false
         }
         if (!shizukuAlive) {
+            Log.e(TAG, "Shizuku binder not alive — aborting")
             notificationHelper.postErrorNotification(
                 title = "Shizuku is not active",
                 body  = "Shizuku is not active. Open Shizuku to re-activate.",
@@ -92,9 +100,11 @@ open class HotspotControllerImpl(
         val hasShizukuPermission = try {
             shizukuGateway.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
         } catch (e: Exception) {
+            Log.e(TAG, "checkSelfPermission threw exception", e)
             false
         }
         if (!hasShizukuPermission) {
+            Log.e(TAG, "Shizuku permission not granted — aborting")
             notificationHelper.postErrorNotification(
                 title = "Shizuku permission required",
                 body  = "Shizuku is not active. Open Shizuku to re-activate.",
@@ -102,9 +112,11 @@ open class HotspotControllerImpl(
             return
         }
 
+        Log.i(TAG, "All guards passed — calling startTetheringViaShizuku")
         // All guards passed — attempt to start Wi-Fi tethering via Shizuku binder.
         startTetheringViaShizuku()
     }
+
 
     // -------------------------------------------------------------------------
     // Private helpers
@@ -125,67 +137,116 @@ open class HotspotControllerImpl(
      */
     protected open fun startTetheringViaShizuku() {
         try {
-            // 1. Wrap the raw "tethering" IBinder with Shizuku so all calls are
-            //    executed with ADB-level identity.
-            val wrappedBinder = ShizukuBinderWrapper(
-                shizukuGateway.getSystemService("tethering")
-            )
+            Log.d(TAG, "Step 1: getting tethering service binder via Shizuku")
+            val rawBinder = shizukuGateway.getSystemService("tethering")
+            if (rawBinder == null) {
+                Log.e(TAG, "getSystemService('tethering') returned null")
+                notificationHelper.postErrorNotification("Hotspot failed", "Tethering service unavailable")
+                return
+            }
+            val wrappedBinder = ShizukuBinderWrapper(rawBinder)
 
-            // 2. Obtain the hidden ITetheringConnector proxy from the wrapped binder.
-            val iTetheringConnectorStub =
+            // Inspect ITetheringConnector$Stub
+            val stubClass = try {
                 Class.forName("android.net.ITetheringConnector\$Stub")
-            val asInterface =
-                iTetheringConnectorStub.getMethod("asInterface", android.os.IBinder::class.java)
-            val connector = asInterface.invoke(null, wrappedBinder)
-
-            // 3. Build a TetheringRequest for TETHERING_WIFI via the builder.
-            val requestBuilderClass =
-                Class.forName("android.net.TetheringManager\$TetheringRequest\$Builder")
-            val requestBuilder =
-                requestBuilderClass.getConstructor(Int::class.java)
-                    .newInstance(TetheringManager.TETHERING_WIFI)
-            val request =
-                requestBuilderClass.getMethod("build").invoke(requestBuilder)
-
-            // 4. Build a dynamic proxy for the hidden StartTetheringCallback interface.
-            val callbackClass =
-                Class.forName("android.net.TetheringManager\$StartTetheringCallback")
-            val callbackProxy = Proxy.newProxyInstance(
-                callbackClass.classLoader,
-                arrayOf(callbackClass),
-            ) { _, method, args ->
-                when (method.name) {
-                    "onTetheringStarted" -> {
-                        // Success — no user-visible action needed.
-                    }
-                    "onTetheringFailed" -> {
-                        // Requirement 3.4: surface failure with error code to the user.
-                        val errorCode = (args?.getOrNull(0) as? Int) ?: -1
-                        notificationHelper.postErrorNotification(
-                            title = "Hotspot could not be enabled",
-                            body  = "Error code: $errorCode",
-                        )
-                    }
-                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load ITetheringConnector\$Stub", e)
                 null
             }
 
-            // 5. Invoke startTethering(TetheringRequest, Executor, StartTetheringCallback).
-            val requestClass =
-                Class.forName("android.net.TetheringManager\$TetheringRequest")
-            connector.javaClass.getMethod(
-                "startTethering",
-                requestClass,
-                java.util.concurrent.Executor::class.java,
-                callbackClass,
-            ).invoke(connector, request, Executors.newSingleThreadExecutor(), callbackProxy)
+            if (stubClass != null) {
+                Log.d(TAG, "ITetheringConnector\$Stub declared methods: " +
+                        stubClass.declaredMethods.joinToString { it.name })
+                Log.d(TAG, "ITetheringConnector\$Stub methods: " +
+                        stubClass.methods.joinToString { it.name })
+            }
+
+            // Inspect ITetheringConnector interface if present
+            val ifaceClass = try {
+                Class.forName("android.net.ITetheringConnector")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load ITetheringConnector interface", e)
+                null
+            }
+            if (ifaceClass != null) {
+                Log.d(TAG, "ITetheringConnector declared methods: " +
+                        ifaceClass.declaredMethods.joinToString { it.name })
+            }
+
+            // Inspect TetheringManager constructors
+            val tmClass = TetheringManager::class.java
+            Log.d(TAG, "TetheringManager constructors: " +
+                    tmClass.declaredConstructors.joinToString { c ->
+                        "${c.name}(${c.parameterTypes.joinToString { it.simpleName }})"
+                    })
+
+            // Attempt 1: Try TetheringManager constructor with shell context and Supplier<IBinder>
+            val shellContext = object : android.content.ContextWrapper(context.applicationContext) {
+                override fun getPackageName(): String = "com.android.shell"
+                override fun getOpPackageName(): String = "com.android.shell"
+                override fun getAttributionTag(): String? = null
+            }
+
+            var started = false
+            for (constructor in tmClass.declaredConstructors) {
+                constructor.isAccessible = true
+                val paramTypes = constructor.parameterTypes
+                if (paramTypes.size == 2 &&
+                    Context::class.java.isAssignableFrom(paramTypes[0]) &&
+                    java.util.function.Supplier::class.java.isAssignableFrom(paramTypes[1])) {
+                    Log.d(TAG, "Found TetheringManager(Context, Supplier<IBinder>) constructor! Invoking with shell context...")
+                    val supplier = java.util.function.Supplier<android.os.IBinder> { wrappedBinder }
+                    val customTm = constructor.newInstance(shellContext, supplier) as TetheringManager
+                    
+                    val request = TetheringManager.TetheringRequest.Builder(TetheringManager.TETHERING_WIFI).build()
+                    val executor = Executors.newSingleThreadExecutor()
+                    val callback = object : TetheringManager.StartTetheringCallback {
+                        override fun onTetheringStarted() {
+                            Log.i(TAG, "onTetheringStarted via custom TetheringManager — hotspot is active!")
+                        }
+                        override fun onTetheringFailed(resultCode: Int) {
+                            Log.e(TAG, "onTetheringFailed via custom TetheringManager: $resultCode")
+                            notificationHelper.postErrorNotification(
+                                title = "Hotspot could not be enabled",
+                                body = "Error code: $resultCode",
+                            )
+                        }
+                    }
+                    customTm.startTethering(request, executor, callback)
+                    Log.i(TAG, "startTethering invoked successfully via custom TetheringManager!")
+                    started = true
+                    break
+                }
+            }
+
+            if (started) return
+
+            // Attempt 2: Direct ITetheringConnector asInterface reflection
+            val asInterfaceMethod = stubClass?.methods?.firstOrNull { it.name == "asInterface" }
+                ?: stubClass?.declaredMethods?.firstOrNull { it.name == "asInterface" }
+
+            if (asInterfaceMethod != null) {
+                asInterfaceMethod.isAccessible = true
+                val connector = asInterfaceMethod.invoke(null, wrappedBinder)
+                Log.d(TAG, "Obtained connector via asInterface: $connector")
+                if (connector != null) {
+                    for (method in connector.javaClass.methods.filter { it.name == "startTethering" }) {
+                        Log.d(TAG, "Connector startTethering params: " +
+                                method.parameterTypes.joinToString { it.name })
+                    }
+                }
+            }
 
         } catch (e: Exception) {
-            // Any reflection or IPC failure posts a notification rather than crashing.
+            Log.e(TAG, "startTetheringViaShizuku failed", e)
             notificationHelper.postErrorNotification(
                 title = "Hotspot could not be enabled",
                 body  = "Could not invoke tethering API: ${e.message}",
             )
         }
+    }
+
+    companion object {
+        private const val TAG = "BtHotspot"
     }
 }

@@ -71,9 +71,10 @@ class BluetoothMonitorService : Service() {
         }
 
         // Dynamically register the Bluetooth receiver (Requirement 2.1).
+        // Must use RECEIVER_EXPORTED on API 33+ so that system broadcasts (from Bluetooth service) can be received.
         val filter = IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(bluetoothConnectionReceiver, filter, RECEIVER_NOT_EXPORTED)
+            registerReceiver(bluetoothConnectionReceiver, filter, RECEIVER_EXPORTED)
         } else {
             @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(bluetoothConnectionReceiver, filter)

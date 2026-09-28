@@ -32,6 +32,10 @@ class ShizukuStatusCheckerImplTest {
         every {
             mockPackageManager.getPackageInfo("moe.shizuku.privileged.api", 0)
         } throws PackageManager.NameNotFoundException()
+        // Fallback: getLaunchIntentForPackage also returns null when not installed
+        every {
+            mockPackageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
+        } returns null
 
         val checker = ShizukuStatusCheckerImpl(mockContext, shizukuGateway)
 

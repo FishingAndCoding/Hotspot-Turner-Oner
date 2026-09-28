@@ -22,6 +22,7 @@ import com.example.bthotspot.shizuku.ShizukuStatusChecker
 import com.example.bthotspot.shizuku.ShizukuStatusCheckerImpl
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.switchmaterial.SwitchMaterial
+import rikka.shizuku.Shizuku
 
 /**
  * Single-screen Activity for the Bluetooth Hotspot Enabler app.
@@ -67,6 +68,40 @@ class MainActivity : AppCompatActivity() {
 
     /** True while we are programmatically updating the toggle to prevent re-entrant handling. */
     private var suppressToggleListener = false
+
+    /** Listener that receives the result of Shizuku.requestPermission(). */
+    private val shizukuPermissionResultListener =
+        Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+            if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
+                if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                    // Permission granted — proceed to activate the automation.
+                    activateAutomation()
+                } else {
+                    // Denied — revert toggle and show guidance.
+                    showError("Shizuku permission denied. Open Shizuku and grant permission to this app.")
+                    revertToggle(false)
+                }
+            }
+        }
+
+    /**
+     * Listener that fires (on the calling thread) as soon as the Shizuku binder is available.
+     *
+     * Using the "sticky" variant means it fires immediately if the binder is already alive
+     * when we register, which handles the case where onResume() races ahead of the binder.
+     */
+    private val shizukuBinderReceivedListener = Shizuku.OnBinderReceivedListener {
+        // The binder just became available — re-evaluate the banner and toggle state.
+        updateShizukuStatus()
+    }
+
+    /**
+     * Listener that fires when the Shizuku server dies (e.g. server is stopped by the user).
+     * Updates the UI so the toggle is disabled and the banner reappears promptly.
+     */
+    private val shizukuBinderDeadListener = Shizuku.OnBinderDeadListener {
+        updateShizukuStatus()
+    }
 
     /**
      * Request code used when asking Shizuku for its own runtime permission.
@@ -118,10 +153,24 @@ class MainActivity : AppCompatActivity() {
             shizukuBanner.visibility = View.GONE
         }
 
-        // Note about WRITE_SETTINGS not being required (Requirement 4.5).
-        // Shizuku replaces the WRITE_SETTINGS flow entirely on API 36+. Display this
-        // information in the status banner when Shizuku is active.
+        // Register the Shizuku permission result listener so we can react when
+        // the user grants or denies permission from the Shizuku dialog.
+        Shizuku.addRequestPermissionResultListener(shizukuPermissionResultListener)
+
+        // Register binder lifecycle listeners.
+        // "Sticky" variant fires immediately if the binder is already available,
+        // resolving the race condition between ShizukuProvider init and onResume().
+        Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
+        Shizuku.addBinderDeadListener(shizukuBinderDeadListener)
+
         setupToggleListener()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Shizuku.removeRequestPermissionResultListener(shizukuPermissionResultListener)
+        Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener)
+        Shizuku.removeBinderDeadListener(shizukuBinderDeadListener)
     }
 
     /**
@@ -179,18 +228,23 @@ class MainActivity : AppCompatActivity() {
         if (!shizukuStatusChecker.isRunning()) {
             showError(getString(R.string.error_shizuku_not_running))
             revertToggle(false)
-            updateShizukuStatus()   // refresh banner
+            updateShizukuStatus()
             return
         }
 
         if (!shizukuStatusChecker.hasPermission()) {
-            // Show Shizuku's own permission dialog.
+            // Request Shizuku permission — leave the toggle ON while we wait for the result.
+            // The shizukuPermissionResultListener will call activateAutomation() on grant,
+            // or revertToggle(false) on denial.
             shizukuStatusChecker.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
-            revertToggle(false)
             return
         }
 
-        // Persist enabled state (Requirements 1.2, 1.7).
+        activateAutomation()
+    }
+
+    /** Persists the enabled state and starts the background service. */
+    private fun activateAutomation() {
         try {
             automationPreferences.setAutomationEnabled(true)
         } catch (e: AutomationPrefsException) {
@@ -199,16 +253,12 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Start the foreground service (Requirement 1.2).
         try {
             val intent = Intent(this, BluetoothMonitorService::class.java)
             startForegroundService(intent)
         } catch (e: SecurityException) {
             showError(getString(R.string.error_service_security))
-            // Roll back the persisted state.
-            try {
-                automationPreferences.setAutomationEnabled(false)
-            } catch (_: AutomationPrefsException) { /* best-effort */ }
+            try { automationPreferences.setAutomationEnabled(false) } catch (_: AutomationPrefsException) {}
             revertToggle(false)
             return
         }

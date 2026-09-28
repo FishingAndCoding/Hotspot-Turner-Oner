@@ -18,7 +18,9 @@ class ShizukuStatusCheckerImpl(
             context.packageManager.getPackageInfo(SHIZUKU_PACKAGE, 0)
             true
         } catch (e: PackageManager.NameNotFoundException) {
-            false
+            // Fallback: getLaunchIntentForPackage is unaffected by package visibility
+            // restrictions and returns non-null if the package is installed and launchable.
+            context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE) != null
         }
     }
 

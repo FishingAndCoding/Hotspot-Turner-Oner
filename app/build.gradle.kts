@@ -38,6 +38,7 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        unitTests.isReturnDefaultValues = true
         unitTests.all {
             it.useJUnitPlatform()
         }
@@ -52,6 +53,7 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:2.0.21")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")

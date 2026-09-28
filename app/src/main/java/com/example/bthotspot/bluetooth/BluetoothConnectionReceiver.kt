@@ -4,6 +4,8 @@ import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.util.Log
 import com.example.bthotspot.data.AutomationPreferences
 import com.example.bthotspot.hotspot.HotspotController
 
@@ -31,25 +33,42 @@ class BluetoothConnectionReceiver(
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != BluetoothDevice.ACTION_ACL_CONNECTED) return
 
-        val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+        }
         val deviceName = try {
             device?.name
         } catch (e: SecurityException) {
             // BLUETOOTH_CONNECT permission may not be granted; treat as unrecognised device.
+            Log.w(TAG, "SecurityException reading device name", e)
             null
         }
 
+        Log.d(TAG, "ACL_CONNECTED — device name: '$deviceName' (target: '$TARGET_DEVICE_NAME')")
+
         // Requirement 2.4: non-target device name → no action
-        if (deviceName != TARGET_DEVICE_NAME) return
+        if (deviceName != TARGET_DEVICE_NAME) {
+            Log.d(TAG, "Device name mismatch — ignoring")
+            return
+        }
+
+        val automationEnabled = automationPreferences.isAutomationEnabled()
+        Log.d(TAG, "Target device matched! automationEnabled=$automationEnabled")
 
         // Requirement 2.5: automation must be active
-        if (!automationPreferences.isAutomationEnabled()) return
+        if (!automationEnabled) return
 
         // Requirement 2.3: target device + automation active → enable hotspot
+        Log.i(TAG, "Triggering hotspot enable")
         hotspotController.enableHotspotIfNeeded()
     }
 
     companion object {
+        private const val TAG = "BtHotspot"
+
         /** The hardcoded Bluetooth device name that triggers hotspot activation. */
         const val TARGET_DEVICE_NAME = "CHEVROLET6572"
     }

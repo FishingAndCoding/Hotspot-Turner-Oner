@@ -38,7 +38,7 @@ class BluetoothConnectionReceiverPropertyTest : FreeSpec({
     "Property 2 - Non-target device name triggers no action" {
         checkAll(
             iterations = 100,
-            Arb.string().filter { it !in BluetoothConnectionReceiver.TARGET_DEVICE_NAMES },
+            Arb.string().filter { it != BluetoothConnectionReceiver.TARGET_DEVICE_NAME },
         ) { nonTargetName ->
             // --- arrange ---
             val automationPreferences = mockk<AutomationPreferences>()

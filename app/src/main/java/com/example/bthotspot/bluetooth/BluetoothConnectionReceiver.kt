@@ -47,10 +47,10 @@ class BluetoothConnectionReceiver(
             null
         }
 
-        Log.d(TAG, "ACL_CONNECTED — device name: '$deviceName' (target: '$TARGET_DEVICE_NAME')")
+        Log.d(TAG, "ACL_CONNECTED — device name: '$deviceName' (targets: $TARGET_DEVICE_NAMES)")
 
         // Requirement 2.4: non-target device name → no action
-        if (deviceName != TARGET_DEVICE_NAME) {
+        if (deviceName !in TARGET_DEVICE_NAMES) {
             Log.d(TAG, "Device name mismatch — ignoring")
             return
         }
@@ -69,7 +69,10 @@ class BluetoothConnectionReceiver(
     companion object {
         private const val TAG = "BtHotspot"
 
-        /** The hardcoded Bluetooth device name that triggers hotspot activation. */
-        const val TARGET_DEVICE_NAME = "CHEVROLET6572"
+        /** Primary target Bluetooth device name. */
+        const val TARGET_DEVICE_NAME = "CHEVROLET9450"
+
+        /** Supported target Bluetooth device names that trigger hotspot activation. */
+        val TARGET_DEVICE_NAMES = setOf("CHEVROLET9450", "CHEVROLET6572")
     }
 }
